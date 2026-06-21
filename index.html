@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Aditya Agarwal — The Digital Wardrobe</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Lato:wght@300;400;700&family=Crimson+Pro:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet"/>
+    <style>
+        /* ═══════════════════════════════════════════════
+           ROOT TOKENS
+        ═══════════════════════════════════════════════ */
+        :root {
+            --linen:      #D2B8A3;
+            --warm-brown: #A68773;
+            --fabric-white: #E8DDD3;
+            --bronze:     #B87333;
+            --dark-shadow:#4E342E;
+            --deep:       #2A1A14;
+            --glow:       rgba(184,115,51,0.6);
+            --thread:     #C8913A;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            background: var(--deep);
+            color: var(--fabric-white);
+            font-family: 'Lato', sans-serif;
+            overflow-x: hidden;
+            cursor: none;
+        }
+
+        /* ═══════════════════════════════════════════════
+           CUSTOM CURSOR — TAILOR NEEDLE (smooth)
+        ═══════════════════════════════════════════════ */
+        #cursor-needle {
+            position: fixed;
+            width: 28px;
+            height: 28px;
+            pointer-events: none;
+            z-index: 99999;
+            transform: translate(-50%,-50%) rotate(-45deg);
+            transition: transform 0.1s;
+        }
+        #cursor-canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            pointer-events: none;
+            z-index: 99998;
+        }
+
+        /* ═══════════════════════════════════════════════
+           LOADING SCREEN
+        ═══════════════════════════════════════════════ */
+        #loader {
+            position: fixed; inset: 0;
+            background: var(--deep);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.8s, visibility 0.8s;
+        }
+        #loader.hidden { opacity: 0; visibility: hidden; }
+        .loader-needle {
+            width: 3px;
+            height: 80px;
+            background: linear-gradient(to bottom, var(--bronze), var(--fabric-white));
+            border-radius: 2px 2px 50% 50%;
+            position: relative;
+            animation: loaderNeedle 1.2s ease-in-out infinite alternate;
+        }
+        .loader-needle::after {
+            content: '';
+            position: absolute;
+            bottom: -2px; left: 50%;
+            transform: translateX(-50%);
+            width: 4px; height: 4px;
+            background: var(--bronze);
+            border-radius: 50%;
+        }
+        @keyframes loaderNeedle {
+            0% { transform: rotate(-30deg) translateY(-10px); }
+            100% { transform: rotate(30deg) translateY(10px); }
+        }
+        .loader-text {
+            margin-top: 24px;
+            font-family: 'Cinzel', serif;
+            font-size: 0.75rem;
+            letter-spacing: 0.4em;
+            color: var(--warm-brown);
+            animation: loaderPulse 1.5s ease-in-out infinite;
+        }
+        @keyframes loaderPulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
+
+        /* ═══════════════════════════════════════════════
+           PARTICLES CANVAS
+        ═══════════════════════════════════════════════ */
+        #particles-canvas {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ═══════════════════════════════════════════════
+           HERO SECTION
+        ═══════════════════════════════════════════════ */
+        #hero {
+            position: relative;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--deep);
+        }
+
+        #hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(210,184,163,0.03) 2px, rgba(210,184,163,0.03) 4px),
+                repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(210,184,163,0.03) 2px, rgba(210,184,163,0.03) 4px);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .wardrobe-glow {
+            position: absolute;
+            width: 500px; height: 700px;
+            background: radial-gradient(ellipse at center, rgba(184,115,51,0.18) 0%, transparent 70%);
+            left: 50%; top: 50%;
+            transform: translate(-50%,-50%);
+            animation: glowPulse 4s ease-in-out infinite;
+            z-index: 1;
+        }
+        @keyframes glowPulse { 0%,100%{opacity:0.6;transform:translate(-50%,-50%) scale(1)} 50%{opacity:1;transform:translate(-50%,-50%) scale(1.08)} }
+
+        .curtain {
+            position: absolute;
+            top: 0;
+            width: 52%;
+            height: 100%;
+            z-index: 10;
+            transition: transform 1.8s cubic-bezier(0.77,0,0.175,1);
+            overflow: hidden;
+        }
+        .curtain-left  { left: 0; transform-origin: left; }
+        .curtain-right { right: 0; transform-origin: right; }
+        .curtain-left.open  { transform: translateX(-100%); }
+        .curtain-right.open { transform: translateX(100%); }
+
+        .curtain-fabric {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom, #3A2418 0%, #4E342E 20%, #5C3D2E 40%, #4E342E 60%, #3A2418 100%);
+        }
+        .curtain-left .curtain-fabric::before,
+        .curtain-left .curtain-fabric::after,
+        .curtain-right .curtain-fabric::before,
+        .curtain-right .curtain-fabric::after {
+            content: '';
+            position: absolute;
+            top: 0; bottom: 0;
+            width: 40px;
+            background: rgba(0,0,0,0.15);
+        }
+        .curtain-left .curtain-fabric::before  { left: 20%; }
+        .curtain-left .curtain-fabric::after   { left: 55%; }
+        .curtain-right .curtain-fabric::before { right: 20%; }
+        .curtain-right .curtain-fabric::after  { right: 55%; }
+
+        .curtain-rod {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 16px;
+            background: linear-gradient(to bottom, #8B6914, #B87333, #8B6914);
+            z-index: 12;
+            box-shadow: 0 4px 20px rgba(184,115,51,0.5);
+        }
+        .curtain-rod::before,
+        .curtain-rod::after {
+            content: '';
+            position: absolute;
+            top: 50%; transform: translateY(-50%);
+            width: 24px; height: 24px;
+            background: radial-gradient(circle at 30% 30%, #DFA040, #8B4914);
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(184,115,51,0.8);
+        }
+        .curtain-rod::before { left: 8px; }
+        .curtain-rod::after  { right: 8px; }
+
+        .hero-content {
+            position: relative;
+            z-index: 5;
+            text-align: center;
+            padding: 0 20px;
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 1.2s 0.5s, transform 1.2s 0.5s;
+        }
+        .hero-content.visible { opacity: 1; transform: translateY(0); }
+
+        .portrait-frame {
+            position: relative;
+            width: 180px; height: 180px;
+            margin: 0 auto 36px;
+        }
+        .portrait-rope {
+            position: absolute;
+            left: 50%; top: -60px;
+            width: 2px; height: 60px;
+            background: repeating-linear-gradient(to bottom, #A68773, #8B6040 6px, #A68773 12px);
+            transform-origin: top center;
+            animation: ropeSwing 4s ease-in-out infinite;
+        }
+        @keyframes ropeSwing { 0%,100%{transform:rotate(-3deg)} 50%{transform:rotate(3deg)} }
+
+        .portrait-ring {
+            position: absolute;
+            bottom: 100%; left: 50%;
+            transform: translateX(-50%);
+            width: 16px; height: 10px;
+            border: 3px solid var(--bronze);
+            border-radius: 50% 50% 0 0;
+            border-bottom: none;
+        }
+        .portrait-img-wrap {
+            width: 180px; height: 180px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 3px solid var(--bronze);
+            box-shadow: 0 0 0 6px rgba(184,115,51,0.15), 0 20px 60px rgba(0,0,0,0.7);
+            background: linear-gradient(135deg, #4E342E, #2A1A14);
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Cinzel', serif;
+            font-size: 4rem;
+            color: var(--bronze);
+            letter-spacing: 0;
+            animation: ropeSwing 4s ease-in-out infinite;
+        }
+
+        .holo-ring {
+            position: absolute;
+            inset: -20px;
+            border-radius: 50%;
+            border: 1px solid rgba(184,115,51,0.25);
+            animation: holo-spin 8s linear infinite;
+        }
+        .holo-ring::before {
+            content: '';
+            position: absolute;
+            top: -3px; left: 50%;
+            width: 6px; height: 6px;
+            background: var(--bronze);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--bronze);
+        }
+        .holo-ring:nth-child(2) { inset: -35px; animation-duration: 12s; animation-direction: reverse; border-color: rgba(184,115,51,0.15); }
+        @keyframes holo-spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+
+        .hero-name {
+            font-family: 'Cinzel', serif;
+            font-size: clamp(2.4rem, 6vw, 5rem);
+            font-weight: 700;
+            color: var(--fabric-white);
+            letter-spacing: 0.12em;
+            line-height: 1;
+            margin-bottom: 12px;
+            text-shadow: 0 0 40px rgba(184,115,51,0.4);
+        }
+        .hero-name span {
+            display: inline-block;
+            opacity: 0;
+            transform: translateY(10px);
+            animation: letterStitch 0.06s forwards;
+        }
+
+        .hero-tagline {
+            font-family: 'Crimson Pro', serif;
+            font-style: italic;
+            font-size: clamp(1rem, 2.5vw, 1.4rem);
+            color: var(--bronze);
+            letter-spacing: 0.25em;
+            margin-bottom: 8px;
+            opacity: 0;
+            animation: fadeUp 1s 2.2s forwards;
+        }
+        .hero-subtitle {
+            font-family: 'Lato', sans-serif;
+            font-size: clamp(0.65rem, 1.5vw, 0.8rem);
+            font-weight: 300;
+            letter-spacing: 0.45em;
+            color: var(--warm-brown);
+            text-transform: uppercase;
+            margin-bottom: 52px;
+            opacity: 0;
+            animation: fadeUp 1s 2.6s forwards;
+        }
+
+        @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+        @keyframes letterStitch { to{opacity:1;transform:none} }
+
+        .cta-group {
+            display: flex;
+            gap: 24px;
+            justify-content: center;
+            flex-wrap: wrap;
+            opacity: 0;
+            animation: fadeUp 1s 3s forwards;
+        }
+        .fabric-tag {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 28px;
+            background: transparent;
+            border: 1.5px solid var(--bronze);
+            color: var(--fabric-white);
+            font-family: 'Cinzel', serif;
+            font-size: 0.7rem;
+            letter-spacing: 0.3em;
+            text-decoration: none;
+            cursor: none;
+            transition: all 0.4s;
+            clip-path: polygon(8px 0%, calc(100% - 8px) 0%, 100% 50%, calc(100% - 8px) 100%, 8px 100%, 0% 50%);
+        }
+        .fabric-tag::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(184,115,51,0.12), rgba(184,115,51,0.04));
+            transition: opacity 0.4s;
+            opacity: 0;
+        }
+        .fabric-tag:hover::before { opacity: 1; }
+        .fabric-tag:hover {
+            border-color: var(--fabric-white);
+            box-shadow: 0 0 30px rgba(184,115,51,0.3), inset 0 0 20px rgba(184,115,51,0.05);
+            transform: translateY(-3px) rotate(-0.5deg);
+        }
+        .tag-hole {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            border: 1.5px solid var(--bronze);
+            flex-shrink: 0;
+        }
+
+        .scroll-hint {
+            position: absolute;
+            bottom: 32px; left: 50%;
+            transform: translateX(-50%);
+            z-index: 6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            opacity: 0;
+            animation: fadeUp 1s 3.5s forwards;
+        }
+        .scroll-thread {
+            width: 1px;
+            height: 50px;
+            background: linear-gradient(to bottom, var(--bronze), transparent);
+            animation: threadDrop 1.5s ease-in-out infinite;
+        }
+        @keyframes threadDrop { 0%{opacity:0;transform:scaleY(0);transform-origin:top} 50%{opacity:1;transform:scaleY(1)} 100%{opacity:0;transform:scaleY(1);transform-origin:bottom} }
+        .scroll-text {
+            font-family: 'Lato', sans-serif;
+            font-size: 0.6rem;
+            letter-spacing: 0.35em;
+            color: var(--warm-brown);
+            text-transform: uppercase;
+        }
+
+        /* ═══════════════════════════════════════════════
+           SECTION COMMONS
+        ═══════════════════════════════════════════════ */
+        section {
+            position: relative;
+            z-index: 2;
+            padding: 120px 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .section-eyebrow {
+            font-family: 'Lato', sans-serif;
+            font-size: 0.65rem;
+            letter-spacing: 0.5em;
+            color: var(--bronze);
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .section-eyebrow::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(to right, var(--bronze), transparent);
+            max-width: 200px;
+        }
+        .section-title {
+            font-family: 'Cinzel', serif;
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 700;
+            color: var(--fabric-white);
+            line-height: 1.1;
+            margin-bottom: 60px;
+        }
+
+        .thread-divider {
+            display: block;
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(to right, transparent, var(--bronze), rgba(184,115,51,0.3), transparent);
+            margin: 0 0 0;
+            opacity: 0.5;
+        }
+
+        /* ═══════════════════════════════════════════════
+           ABOUT SECTION
+        ═══════════════════════════════════════════════ */
+        #about {
+            background: linear-gradient(180deg, transparent, rgba(74,52,46,0.12) 30%, rgba(74,52,46,0.12) 70%, transparent);
+        }
+        .about-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            align-items: start;
+        }
+        @media(max-width:768px){.about-grid{grid-template-columns:1fr;gap:40px;}}
+
+        .linen-frame {
+            position: relative;
+            padding: 40px;
+            background: linear-gradient(135deg, rgba(210,184,163,0.08), rgba(166,135,115,0.04));
+            border: 1px solid rgba(184,115,51,0.3);
+        }
+        .linen-frame::before,
+        .linen-frame::after {
+            content: '';
+            position: absolute;
+            width: 20px; height: 20px;
+            border-color: var(--bronze);
+            border-style: solid;
+        }
+        .linen-frame::before { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+        .linen-frame::after  { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+
+        .about-intro {
+            font-family: 'Crimson Pro', serif;
+            font-size: 1.3rem;
+            font-weight: 300;
+            line-height: 1.85;
+            color: var(--linen);
+        }
+        .about-intro em { font-style: italic; color: var(--bronze); }
+        .about-highlight { display: inline-block; color: var(--fabric-white); font-weight: 400; }
+
+        .stat-row { display: flex; gap: 40px; margin-top: 40px; flex-wrap: wrap; }
+        .stat { display: flex; flex-direction: column; gap: 4px; }
+        .stat-num { font-family: 'Cinzel', serif; font-size: 2rem; color: var(--bronze); line-height: 1; }
+        .stat-label { font-size: 0.65rem; letter-spacing: 0.3em; color: var(--warm-brown); text-transform: uppercase; }
+
+        .timeline-rope { position: relative; padding-left: 40px; }
+        .timeline-rope::before {
+            content: '';
+            position: absolute;
+            left: 10px; top: 0; bottom: 0;
+            width: 3px;
+            background: repeating-linear-gradient(to bottom, var(--warm-brown), #8B6040 8px, var(--warm-brown) 16px);
+            border-radius: 2px;
+        }
+        .timeline-item {
+            position: relative;
+            margin-bottom: 36px;
+            opacity: 0;
+            transform: translateX(-16px);
+            transition: opacity 0.6s, transform 0.6s;
+        }
+        .timeline-item.visible { opacity: 1; transform: none; }
+        .timeline-knot {
+            position: absolute;
+            left: -36px; top: 4px;
+            width: 14px; height: 14px;
+            border-radius: 50%;
+            background: var(--bronze);
+            border: 2px solid var(--dark-shadow);
+            box-shadow: 0 0 12px rgba(184,115,51,0.6);
+        }
+        .timeline-year { font-family: 'Cinzel', serif; font-size: 0.7rem; letter-spacing: 0.25em; color: var(--bronze); margin-bottom: 4px; }
+        .timeline-role { font-family: 'Lato', sans-serif; font-size: 1rem; font-weight: 700; color: var(--fabric-white); margin-bottom: 2px; }
+        .timeline-org { font-family: 'Crimson Pro', serif; font-style: italic; font-size: 0.9rem; color: var(--warm-brown); }
+        .timeline-detail { font-size: 0.82rem; color: var(--linen); line-height: 1.6; margin-top: 6px; opacity: 0.8; }
+
+        /* ═══════════════════════════════════════════════
+           EDUCATION & CERTS
+        ═══════════════════════════════════════════════ */
+        #education { background: rgba(74,52,46,0.06); }
+        .edu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-bottom: 80px; }
+        .edu-card {
+            position: relative; padding: 32px;
+            background: linear-gradient(135deg, rgba(210,184,163,0.07), rgba(166,135,115,0.03));
+            border: 1px solid rgba(184,115,51,0.25);
+            transition: transform 0.4s, box-shadow 0.4s;
+            overflow: hidden; opacity: 0; transform: translateY(20px);
+            transition: opacity 0.6s, transform 0.6s, box-shadow 0.4s;
+        }
+        .edu-card.visible { opacity: 1; transform: none; }
+        .edu-card:hover { transform: translateY(-6px) rotate(-0.3deg); box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 30px rgba(184,115,51,0.1); }
+        .edu-card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(to right, transparent, var(--bronze), transparent);
+            transform: scaleX(0); transition: transform 0.4s;
+        }
+        .edu-card:hover::before { transform: scaleX(1); }
+        .edu-degree { font-family: 'Cinzel', serif; font-size: 0.9rem; color: var(--fabric-white); margin-bottom: 6px; }
+        .edu-school { font-family: 'Crimson Pro', serif; font-style: italic; font-size: 0.9rem; color: var(--warm-brown); margin-bottom: 12px; }
+        .edu-meta { display: flex; justify-content: space-between; align-items: center; }
+        .edu-cgpa { font-family: 'Cinzel', serif; font-size: 1.4rem; color: var(--bronze); }
+        .edu-year { font-size: 0.7rem; letter-spacing: 0.2em; color: var(--warm-brown); }
+
+        .cert-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+        .cert-frame {
+            position: relative; padding: 24px 20px; border: 1.5px solid rgba(184,115,51,0.35);
+            text-align: center; background: rgba(0,0,0,0.2); opacity: 0; transition: opacity 0.6s, transform 0.6s; transform: translateY(10px);
+        }
+        .cert-frame.visible { opacity: 1; transform: none; }
+        .cert-frame:hover { border-color: var(--bronze); box-shadow: 0 0 25px rgba(184,115,51,0.2); transform: translateY(-4px) rotate(0.5deg); }
+        .cert-icon { font-size: 1.6rem; margin-bottom: 10px; }
+        .cert-name { font-family: 'Lato', sans-serif; font-size: 0.78rem; color: var(--fabric-white); letter-spacing: 0.05em; line-height: 1.4; }
+        .cert-issuer { font-size: 0.65rem; letter-spacing: 0.2em; color: var(--warm-brown); margin-top: 6px; text-transform: uppercase; }
+
+        /* ═══════════════════════════════════════════════
+           SKILLS — WARDROBE (including learning stitch)
+        ═══════════════════════════════════════════════ */
+        #skills { background: linear-gradient(180deg, transparent, rgba(42,26,20,0.5), transparent); }
+        .wardrobe-shell {
+            position: relative; border: 1px solid rgba(184,115,51,0.3); border-top: 4px solid var(--bronze);
+            background: linear-gradient(180deg, rgba(42,26,20,0.8), rgba(60,32,20,0.6));
+            overflow: hidden; box-shadow: inset 0 0 80px rgba(0,0,0,0.5), 0 30px 80px rgba(0,0,0,0.5);
+        }
+        .wardrobe-rail {
+            display: flex; align-items: center; padding: 0 40px; height: 52px;
+            background: linear-gradient(to bottom, #5C3D2E, #3A2418);
+            border-bottom: 2px solid var(--bronze); gap: 20px;
+        }
+        .rail-knob {
+            width: 20px; height: 20px; border-radius: 50%;
+            background: radial-gradient(circle at 35% 35%, #DFA040, #8B4914);
+            box-shadow: 0 0 8px rgba(184,115,51,0.6);
+        }
+        .rail-bar { flex: 1; height: 4px; background: linear-gradient(to right, #8B6914, #B87333, #8B6914); border-radius: 2px; }
+
+        .skill-tabs {
+            display: flex; gap: 0; padding: 0 40px; background: rgba(0,0,0,0.3);
+            border-bottom: 1px solid rgba(184,115,51,0.2); overflow-x: auto; scrollbar-width: none;
+        }
+        .skill-tabs::-webkit-scrollbar { display: none; }
+        .skill-tab {
+            padding: 16px 24px; font-family: 'Lato', sans-serif; font-size: 0.7rem;
+            letter-spacing: 0.25em; text-transform: uppercase; color: var(--warm-brown);
+            cursor: none; white-space: nowrap; border-bottom: 2px solid transparent;
+            transition: all 0.3s; background: transparent; border-top: none; border-left: none; border-right: none; position: relative;
+        }
+        .skill-tab::after {
+            content: ''; position: absolute; bottom: -2px; left: 0; right: 0; height: 2px;
+            background: var(--bronze); transform: scaleX(0); transition: transform 0.3s;
+        }
+        .skill-tab.active { color: var(--fabric-white); }
+        .skill-tab.active::after { transform: scaleX(1); }
+        .skill-tab:hover { color: var(--linen); }
+
+        .skill-panels { padding: 48px 40px; min-height: 340px; }
+        .skill-panel { display: none; }
+        .skill-panel.active { display: block; }
+        .skill-panel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 16px; }
+
+        /* Patch with learning stitch */
+        .skill-patch {
+            position: relative; padding: 24px 16px; text-align: center;
+            background: rgba(210,184,163,0.06); border: 1px solid rgba(184,115,51,0.2);
+            transition: all 0.4s; cursor: none; overflow: hidden;
+        }
+        .skill-patch.stitching {
+            border-color: rgba(184,115,51,0.55);
+            box-shadow: 0 0 12px rgba(184,115,51,0.15);
+        }
+        /* moving dashed border */
+        .skill-patch.stitching::after {
+            content: '';
+            position: absolute; inset: 4px;
+            border: 1px dashed var(--bronze);
+            border-radius: 2px;
+            opacity: 0.6;
+            animation: stitchDash 3s linear infinite;
+        }
+        @keyframes stitchDash {
+            0% { stroke-dashoffset: 0; }
+            100% { stroke-dashoffset: 30; }
+        }
+        /* learning tag inside */
+        .skill-patch.stitching .learning-tag {
+            position: absolute;
+            bottom: 6px;
+            right: 10px;
+            font-size: 0.55rem;
+            letter-spacing: 0.15em;
+            color: var(--bronze);
+            opacity: 0.85;
+            background: rgba(0,0,0,0.3);
+            padding: 2px 6px;
+            border-radius: 2px;
+            font-family: 'Lato', sans-serif;
+        }
+        .skill-patch.stitching .learning-tag::before {
+            content: '🧵 ';
+        }
+
+        .skill-patch::before { 
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(135deg, rgba(184,115,51,0.15), transparent);
+            opacity: 0; transition: opacity 0.4s;
+        }
+        .skill-patch:hover::before { opacity: 1; }
+        .skill-patch:hover {
+            transform: translateY(-6px) rotate(-0.5deg);
+            border-color: var(--bronze);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 0 20px rgba(184,115,51,0.2);
+        }
+        .skill-icon { font-size: 1.8rem; margin-bottom: 10px; display: block; }
+        .skill-name {
+            font-family: 'Lato', sans-serif; font-size: 0.75rem; font-weight: 700;
+            color: var(--fabric-white); letter-spacing: 0.08em;
+        }
+        .skill-bar { margin-top: 10px; height: 2px; background: rgba(210,184,163,0.15); border-radius: 2px; overflow: hidden; }
+        .skill-fill { height: 100%; background: linear-gradient(to right, var(--bronze), #DFA040); border-radius: 2px; width: 0; transition: width 1s 0.3s ease; }
+        .skill-patch.visible .skill-fill { width: var(--skill-pct); }
+
+        .skill-vibe {
+            grid-column: span 2; padding: 20px; display: flex; align-items: center; gap: 20px;
+            background: linear-gradient(135deg, rgba(184,115,51,0.12), rgba(42,26,20,0.6));
+            border: 1px solid rgba(184,115,51,0.4);
+        }
+        .skill-vibe-icon { font-size: 2.5rem; flex-shrink: 0; }
+        .skill-vibe-text h4 { font-family: 'Cinzel', serif; font-size: 0.9rem; color: var(--fabric-white); margin-bottom: 4px; }
+        .skill-vibe-text p { font-size: 0.75rem; color: var(--warm-brown); line-height: 1.5; }
+
+        /* ═══════════════════════════════════════════════
+           PROJECTS — SHOWROOM
+        ═══════════════════════════════════════════════ */
+        #projects { background: linear-gradient(180deg, transparent, rgba(42,26,20,0.3), transparent); }
+        .projects-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 28px; }
+        .project-garment {
+            position: relative; background: linear-gradient(160deg, rgba(60,32,20,0.8), rgba(42,26,20,0.9));
+            border: 1px solid rgba(184,115,51,0.2); overflow: hidden;
+            transition: transform 0.5s, box-shadow 0.5s; opacity: 0; transform: translateY(24px);
+        }
+        .project-garment.visible { opacity: 1; transform: none; }
+        .project-garment:hover { transform: translateY(-10px) rotate(-0.4deg); box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 40px rgba(184,115,51,0.12); border-color: rgba(184,115,51,0.5); }
+        .garment-hanger { display: flex; align-items: flex-end; justify-content: center; height: 50px; padding-bottom: 8px; background: rgba(0,0,0,0.2); border-bottom: 1px solid rgba(184,115,51,0.15); gap: 0; }
+        .hanger-hook { width: 2px; height: 20px; background: linear-gradient(to bottom, var(--bronze), var(--warm-brown)); border-radius: 1px; }
+        .hanger-bar { width: 60%; height: 2px; background: linear-gradient(to right, transparent, var(--bronze), transparent); }
+        .garment-icon { font-size: 3.5rem; text-align: center; padding: 28px 0 12px; display: block; filter: drop-shadow(0 0 20px rgba(184,115,51,0.3)); }
+        .garment-body { padding: 0 28px 28px; }
+        .project-type { font-size: 0.6rem; letter-spacing: 0.4em; color: var(--bronze); text-transform: uppercase; margin-bottom: 8px; }
+        .project-name { font-family: 'Cinzel', serif; font-size: 1.1rem; color: var(--fabric-white); margin-bottom: 12px; line-height: 1.2; }
+        .project-desc { font-family: 'Crimson Pro', serif; font-size: 0.9rem; line-height: 1.7; color: var(--linen); margin-bottom: 20px; }
+        .project-stack { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+        .stack-tag { padding: 3px 10px; font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; border: 1px solid rgba(184,115,51,0.4); color: var(--warm-brown); background: rgba(184,115,51,0.06); }
+        .project-stat { font-size: 0.8rem; color: var(--bronze); font-family: 'Crimson Pro', serif; font-style: italic; margin-bottom: 20px; }
+        .project-links { display: flex; gap: 12px; }
+        .project-link { padding: 8px 20px; font-family: 'Lato', sans-serif; font-size: 0.65rem; letter-spacing: 0.25em; text-transform: uppercase; text-decoration: none; border: 1px solid rgba(184,115,51,0.4); color: var(--warm-brown); transition: all 0.3s; cursor: none; }
+        .project-link:hover { border-color: var(--bronze); color: var(--fabric-white); background: rgba(184,115,51,0.1); }
+        .project-link.primary { background: rgba(184,115,51,0.15); color: var(--fabric-white); border-color: var(--bronze); }
+        .project-link.primary:hover { background: rgba(184,115,51,0.3); }
+
+        /* ═══════════════════════════════════════════════
+           CONTACT
+        ═══════════════════════════════════════════════ */
+        #contact { background: linear-gradient(180deg, transparent, rgba(42,26,20,0.5)); }
+        .contact-layout { display: grid; grid-template-columns: 1fr 1.5fr; gap: 80px; align-items: start; }
+        @media(max-width:768px){.contact-layout{grid-template-columns:1fr;gap:40px;}}
+        .contact-info-title { font-family: 'Cinzel', serif; font-size: 1.4rem; color: var(--fabric-white); margin-bottom: 24px; }
+        .contact-line { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 20px; }
+        .contact-icon { font-size: 1.2rem; color: var(--bronze); }
+        .contact-label { font-size: 0.6rem; letter-spacing: 0.3em; color: var(--warm-brown); text-transform: uppercase; margin-bottom: 3px; }
+        .contact-value { font-family: 'Crimson Pro', serif; font-size: 0.95rem; color: var(--linen); }
+        .contact-value a { color: var(--linen); text-decoration: none; border-bottom: 1px solid rgba(184,115,51,0.3); transition: border-color 0.3s, color 0.3s; }
+        .contact-value a:hover { color: var(--bronze); border-color: var(--bronze); }
+
+        /* ═══════════════════════════════════════════════
+           CONTACT FORM — BESPOKE ATELIER STYLE
+        ═══════════════════════════════════════════════ */
+        .linen-form {
+            position: relative;
+            background:
+                repeating-linear-gradient(0deg, transparent, transparent 28px, rgba(210,184,163,0.04) 28px, rgba(210,184,163,0.04) 29px),
+                linear-gradient(160deg, rgba(210,184,163,0.09) 0%, rgba(166,135,115,0.04) 50%, rgba(74,52,46,0.15) 100%);
+            border: 1px solid rgba(184,115,51,0.3);
+            padding: 44px 44px 36px;
+            box-shadow: inset 0 1px 0 rgba(184,115,51,0.15), 0 20px 60px rgba(0,0,0,0.3);
+        }
+        /* corner ornaments */
+        .linen-form::before, .linen-form::after {
+            content: '';
+            position: absolute;
+            width: 24px; height: 24px;
+            border-color: var(--bronze);
+            border-style: solid;
+            opacity: 0.7;
+        }
+        .linen-form::before { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+        .linen-form::after  { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+
+        /* extra inner corner marks */
+        .linen-form .form-corner-tr,
+        .linen-form .form-corner-bl {
+            position: absolute;
+            width: 24px; height: 24px;
+            border-color: rgba(184,115,51,0.5);
+            border-style: solid;
+        }
+        .linen-form .form-corner-tr { top: -1px; right: -1px; border-width: 2px 2px 0 0; }
+        .linen-form .form-corner-bl { bottom: -1px; left: -1px; border-width: 0 0 2px 2px; }
+
+        .form-field { margin-bottom: 30px; position: relative; }
+
+        .form-label {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 0.6rem; letter-spacing: 0.45em; color: var(--bronze);
+            text-transform: uppercase; margin-bottom: 12px; font-family: 'Lato', sans-serif;
+        }
+        .form-label::before {
+            content: '✦';
+            font-size: 0.45rem;
+            opacity: 0.7;
+        }
+
+        .form-input {
+            width: 100%;
+            background: rgba(0,0,0,0.22);
+            border: none;
+            border-bottom: 1px solid rgba(184,115,51,0.3);
+            padding: 13px 4px;
+            font-family: 'Crimson Pro', serif;
+            font-size: 1.05rem;
+            color: var(--fabric-white);
+            transition: border-color 0.35s, background 0.35s;
+            outline: none;
+        }
+        .form-input:focus {
+            border-bottom-color: var(--bronze);
+            background: rgba(184,115,51,0.04);
+        }
+        .form-input::placeholder { color: rgba(210,184,163,0.28); font-style: italic; }
+
+        /* animated underline glow on focus */
+        .form-field::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0;
+            width: 0; height: 1px;
+            background: linear-gradient(to right, var(--bronze), var(--thread), transparent);
+            transition: width 0.5s cubic-bezier(0.25,1,0.5,1);
+            pointer-events: none;
+        }
+        .form-field:focus-within::after { width: 100%; }
+
+        textarea.form-input {
+            resize: vertical; min-height: 130px;
+            background: rgba(0,0,0,0.18);
+            border: 1px solid rgba(184,115,51,0.22);
+            padding: 14px 12px;
+            line-height: 1.7;
+            border-bottom: 1px solid rgba(184,115,51,0.3);
+        }
+        textarea.form-input:focus {
+            border-color: rgba(184,115,51,0.6);
+            background: rgba(184,115,51,0.03);
+        }
+        /* remove bottom glow on textarea since it has full border */
+        .form-field:has(textarea)::after { display: none; }
+
+        /* ── Send button ── */
+        .send-btn {
+            display: inline-flex; align-items: center; gap: 14px;
+            padding: 15px 40px;
+            background: transparent;
+            border: 1px solid rgba(184,115,51,0.7);
+            color: var(--fabric-white);
+            font-family: 'Cinzel', serif; font-size: 0.72rem; letter-spacing: 0.35em;
+            cursor: none; transition: all 0.45s; position: relative; overflow: hidden;
+            clip-path: polygon(10px 0%, calc(100% - 10px) 0%, 100% 50%, calc(100% - 10px) 100%, 10px 100%, 0% 50%);
+        }
+        .send-btn::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: linear-gradient(135deg, rgba(184,115,51,0.22) 0%, rgba(200,145,58,0.08) 100%);
+            transform: translateX(-110%) skewX(-8deg);
+            transition: transform 0.55s cubic-bezier(0.25,1,0.5,1);
+        }
+        .send-btn::after {
+            content: '';
+            position: absolute; inset: 0;
+            border: 1px solid rgba(184,115,51,0.25);
+            clip-path: inherit;
+            pointer-events: none;
+        }
+        .send-btn:hover::before { transform: translateX(0) skewX(0deg); }
+        .send-btn:hover {
+            border-color: var(--bronze);
+            box-shadow: 0 0 28px rgba(184,115,51,0.22), inset 0 0 16px rgba(184,115,51,0.06);
+            transform: translateY(-2px);
+            letter-spacing: 0.4em;
+        }
+        .send-btn:disabled {
+            opacity: 0.65;
+            transform: none;
+        }
+        .send-needle { font-size: 1.1rem; transition: transform 0.4s; }
+        .send-btn:hover .send-needle { transform: rotate(-20deg) translateY(-2px); }
+
+        /* ── Sending state ── */
+        .send-btn.sending {
+            border-color: rgba(184,115,51,0.4);
+            animation: btnPulse 1.2s ease-in-out infinite;
+        }
+        @keyframes btnPulse {
+            0%,100% { box-shadow: 0 0 0 rgba(184,115,51,0); }
+            50%      { box-shadow: 0 0 22px rgba(184,115,51,0.3); }
+        }
+
+        /* ── Success banner ── */
+        .form-success {
+            display: none;
+            position: relative;
+            text-align: center;
+            padding: 22px 28px;
+            margin-top: 8px;
+            font-family: 'Cinzel', serif;
+            font-size: 0.8rem;
+            color: var(--bronze);
+            letter-spacing: 0.28em;
+            border: 1px solid rgba(184,115,51,0.35);
+            background: linear-gradient(135deg, rgba(184,115,51,0.07), rgba(200,145,58,0.03));
+            animation: successReveal 0.7s cubic-bezier(0.25,1,0.5,1) forwards;
+        }
+        .form-success::before, .form-success::after {
+            content: '';
+            position: absolute;
+            width: 16px; height: 16px;
+            border-color: var(--bronze);
+            border-style: solid;
+            opacity: 0.6;
+        }
+        .form-success::before { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+        .form-success::after  { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+        @keyframes successReveal {
+            from { opacity: 0; transform: translateY(10px) scale(0.97); }
+            to   { opacity: 1; transform: none; }
+        }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* ═══════════════════════════════════════════════
+           FOOTER
+        ═══════════════════════════════════════════════ */
+        footer { position: relative; text-align: center; padding: 80px 40px 60px; overflow: hidden; z-index: 2; }
+        .footer-curtains { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+        .footer-curtain { position: absolute; top: 0; width: 55%; height: 100%; background: linear-gradient(to bottom, #3A2418, #4E342E 60%, #3A2418); transition: transform 2s 0.5s cubic-bezier(0.77,0,0.175,1); }
+        .footer-curtain-l { left: 0; transform: translateX(-100%); }
+        .footer-curtain-r { right: 0; transform: translateX(100%); }
+        .footer-curtain-l.closing { transform: translateX(0); }
+        .footer-curtain-r.closing { transform: translateX(0); }
+        .footer-logo { font-family: 'Cinzel', serif; font-size: 2.5rem; font-weight: 700; color: var(--fabric-white); letter-spacing: 0.15em; margin-bottom: 16px; position: relative; z-index: 2; }
+        .footer-logo span { color: var(--bronze); }
+        .footer-tagline { font-family: 'Crimson Pro', serif; font-style: italic; font-size: 1rem; color: var(--warm-brown); margin-bottom: 40px; position: relative; z-index: 2; }
+        .footer-links { display: flex; justify-content: center; gap: 32px; flex-wrap: wrap; margin-bottom: 40px; position: relative; z-index: 2; }
+        .footer-links a { font-size: 0.65rem; letter-spacing: 0.35em; color: var(--warm-brown); text-decoration: none; text-transform: uppercase; transition: color 0.3s; cursor: none; }
+        .footer-links a:hover { color: var(--bronze); }
+        .footer-copy { font-size: 0.65rem; letter-spacing: 0.2em; color: rgba(166,135,115,0.4); position: relative; z-index: 2; }
+
+        .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.8s, transform 0.8s; }
+        .reveal.visible { opacity: 1; transform: none; }
+
+        nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; padding: 0 48px; height: 70px; display: flex; align-items: center; justify-content: space-between; transition: background 0.4s, box-shadow 0.4s; }
+        nav.scrolled { background: rgba(26,14,10,0.92); backdrop-filter: blur(20px); box-shadow: 0 1px 0 rgba(184,115,51,0.2); }
+        .nav-logo { font-family: 'Cinzel', serif; font-size: 1rem; font-weight: 700; color: var(--fabric-white); letter-spacing: 0.15em; text-decoration: none; cursor: none; }
+        .nav-logo span { color: var(--bronze); }
+        .nav-links { display: flex; gap: 32px; list-style: none; }
+        .nav-links a { font-family: 'Lato', sans-serif; font-size: 0.65rem; letter-spacing: 0.3em; text-transform: uppercase; color: var(--warm-brown); text-decoration: none; transition: color 0.3s; cursor: none; position: relative; }
+        .nav-links a::after { content: ''; position: absolute; bottom: -3px; left: 0; right: 0; height: 1px; background: var(--bronze); transform: scaleX(0); transition: transform 0.3s; }
+        .nav-links a:hover { color: var(--fabric-white); }
+        .nav-links a:hover::after { transform: scaleX(1); }
+        @media(max-width:640px){.nav-links{display:none;}}
+
+        .light-ray { position: fixed; top: 0; bottom: 0; width: 200px; background: linear-gradient(to right, transparent, rgba(184,115,51,0.025), transparent); pointer-events: none; z-index: 1; animation: rayDrift 8s ease-in-out infinite; transform-origin: top; }
+        .light-ray:nth-child(2) { animation-delay: -3s; animation-duration: 11s; }
+        @keyframes rayDrift { 0%,100%{transform:rotate(-5deg) translateX(-10%);opacity:0.4} 50%{transform:rotate(5deg) translateX(10%);opacity:0.8} }
+    </style>
+</head>
+<body>
+<!-- LOADER --><div id="loader"><div class="loader-needle"></div><div class="loader-text">THREADING THE WARDROBE…</div></div>
+<canvas id="cursor-canvas"></canvas>
+<svg id="cursor-needle" viewBox="0 0 28 28"><ellipse cx="14" cy="14" rx="2" ry="10" fill="url(#needle-grad)" transform="rotate(-45 14 14)"/><ellipse cx="14" cy="14" rx="1" ry="3" fill="#DFA040" transform="rotate(-45 14 14) translate(0 -7)"/><ellipse cx="14" cy="14" rx="1.5" ry="1.5" fill="rgba(255,255,255,0.9)" transform="rotate(-45 14 14) translate(0 -6)"/><defs><linearGradient id="needle-grad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#DFA040"/><stop offset="50%" stop-color="#B8860B"/><stop offset="100%" stop-color="#8B6914"/></linearGradient></defs></svg>
+<div class="light-ray" style="left:15%"></div><div class="light-ray" style="right:20%"></div>
+<canvas id="particles-canvas"></canvas>
+
+<nav id="navbar"><a href="#hero" class="nav-logo">A<span>.</span>A</a><ul class="nav-links"><li><a href="#about">About</a></li><li><a href="#education">Education</a></li><li><a href="#skills">Skills</a></li><li><a href="#projects">Projects</a></li><li><a href="#contact">Contact</a></li></ul></nav>
+
+<div id="hero">
+    <div class="curtain-rod"></div>
+    <div class="curtain curtain-left"><div class="curtain-fabric"></div></div>
+    <div class="curtain curtain-right"><div class="curtain-fabric"></div></div>
+    <div class="wardrobe-glow"></div>
+    <div class="hero-content" id="heroContent">
+        <div class="portrait-frame"><div class="portrait-rope"></div><div class="portrait-ring"></div><div class="portrait-img-wrap"><img src="my.jpeg" alt="Aditya Agarwal" style="width:100%; height:100%; object-fit:cover; border-radius:50%;"></div><div class="holo-ring"></div><div class="holo-ring"></div></div>
+        <h1 class="hero-name" id="heroName"></h1>
+        <p class="hero-tagline">Web Developer · Data Scientist · ML Enthusiast</p>
+        <p class="hero-subtitle">B.Tech CSE (AI & ML) · AKTU · Co-founder @ PANKH</p>
+        <div class="cta-group">
+            <a href="#skills" class="fabric-tag"><span class="tag-hole"></span>Explore My Wardrobe<span class="tag-hole"></span></a>
+            <a href="#projects" class="fabric-tag"><span class="tag-hole"></span>View Projects<span class="tag-hole"></span></a>
+        </div>
+    </div>
+    <div class="scroll-hint"><span class="scroll-text">Unroll</span><div class="scroll-thread"></div></div>
+</div>
+<span class="thread-divider"></span>
+
+<section id="about">
+    <div class="section-eyebrow reveal">The Atelier</div><h2 class="section-title reveal">Inside the Studio</h2>
+    <div class="about-grid">
+        <div class="linen-frame reveal">
+            <p class="about-intro">I am <em class="about-highlight">Aditya Agarwal</em> — a Computer Science student specialising in <em>AI & Machine Learning</em> at AKTU, where I treat every project like a bespoke garment: measured precisely, crafted with care, and built to last. I have engineered Python modules used by internal teams, built predictive models hitting <em>86% accuracy</em>, and designed scalable system architectures from the ground up.</p>
+            <p class="about-intro" style="margin-top:20px;">Beyond academics, I co-founded <em class="about-highlight">PANKH</em> — a startup that reached significant revenue through inventory automation and digital operations. My curiosity stretches from <em>GenAI and LLMs</em> to clean backend architecture, always asking: "How do I stitch this idea into something intelligent?"</p>
+            <div class="stat-row">
+                <div class="stat"><span class="stat-num">6+</span><span class="stat-label">Projects</span></div>
+                <div class="stat"><span class="stat-num">86%</span><span class="stat-label">Model Accuracy</span></div>
+                <div class="stat"><span class="stat-num">8.23</span><span class="stat-label">CGPA</span></div>
+            </div>
+        </div>
+        <div>
+            <div class="section-eyebrow reveal" style="margin-bottom:28px;">The Thread of Time</div>
+            <div class="timeline-rope">
+                <div class="timeline-item"><div class="timeline-knot"></div><div class="timeline-year">2021 – 2022</div><div class="timeline-role">Class X</div><div class="timeline-org">Wendy High School (CISCE)</div><div class="timeline-detail">78% — first brushstrokes.</div></div>
+                <div class="timeline-item"><div class="timeline-knot"></div><div class="timeline-year">2023 – 2024</div><div class="timeline-role">Class XII — Science</div><div class="timeline-org">Wendy High School (ISC)</div><div class="timeline-detail">87% · JEE Mains Top 18 percentile.</div></div>
+                <div class="timeline-item"><div class="timeline-knot"></div><div class="timeline-year">2024 – Present</div><div class="timeline-role">B.Tech CSE (AI & ML)</div><div class="timeline-org">AKTU · CGPA 8.23</div></div>
+                <div class="timeline-item"><div class="timeline-knot"></div><div class="timeline-year">Oct – Nov 2024</div><div class="timeline-role">Python Developer Intern</div><div class="timeline-org">CodSoft</div></div>
+                <div class="timeline-item"><div class="timeline-knot"></div><div class="timeline-year">Feb 2025 – Present</div><div class="timeline-role">Co-Founder & Technical Lead</div><div class="timeline-org">PANKH</div></div>
+                <div class="timeline-item"><div class="timeline-knot" style="box-shadow:0 0 20px rgba(184,115,51,0.9);"></div><div class="timeline-year" style="color:var(--fabric-white);">The Future</div><div class="timeline-role">SDE Intern · AI Engineer</div></div>
+            </div>
+        </div>
+    </div>
+</section>
+<span class="thread-divider"></span>
+
+<section id="education">
+    <div class="section-eyebrow reveal">Credentials</div><h2 class="section-title reveal">Folded Fabrics of Knowledge</h2>
+    <div class="edu-grid">
+        <div class="edu-card"><div class="edu-degree">B.Tech — CSE (AI & ML)</div><div class="edu-school">AKTU</div><div class="edu-meta"><span class="edu-cgpa">8.23</span><span class="edu-year">2024–2028</span></div></div>
+        <div class="edu-card"><div class="edu-degree">Senior Secondary</div><div class="edu-school">Wendy High School</div><div class="edu-meta"><span class="edu-cgpa">87%</span><span class="edu-year">2023–2024</span></div></div>
+        <div class="edu-card"><div class="edu-degree">Secondary</div><div class="edu-school">Wendy High School</div><div class="edu-meta"><span class="edu-cgpa">78%</span><span class="edu-year">2021–2022</span></div></div>
+    </div>
+    <div class="section-eyebrow reveal" style="margin-bottom:28px;">Hanging Honours</div>
+    <div class="cert-grid">
+        <div class="cert-frame"><div class="cert-icon">🏅</div><div class="cert-name">Agile Project Management</div><div class="cert-issuer">HP LIFE</div></div>
+        <div class="cert-frame"><div class="cert-icon">🐍</div><div class="cert-name">Python for AI & ML</div><div class="cert-issuer">Be10x</div></div>
+        <div class="cert-frame"><div class="cert-icon">📝</div><div class="cert-name">JEE Mains 2025 Qualified</div><div class="cert-issuer">Top 18 Percentile</div></div>
+        <div class="cert-frame"><div class="cert-icon">🚀</div><div class="cert-name">Sci‑Fi Data Science Hackathon</div><div class="cert-issuer">Top 200 Globally</div></div>
+    </div>
+</section>
+<span class="thread-divider"></span>
+
+<section id="skills">
+    <div class="section-eyebrow reveal">The Collection</div><h2 class="section-title reveal">The Wardrobe of Skills</h2>
+    <div class="wardrobe-shell reveal">
+        <div class="wardrobe-rail"><div class="rail-knob"></div><div class="rail-bar"></div><div class="rail-knob"></div></div>
+        <div class="skill-tabs">
+            <button class="skill-tab active" data-panel="web">⬡ Web Dev</button>
+            <button class="skill-tab" data-panel="ds">◈ Data Science</button>
+            <button class="skill-tab" data-panel="ml">◉ Machine Learning</button>
+            <button class="skill-tab" data-panel="ai">✦ AI & GenAI</button>
+            <button class="skill-tab" data-panel="vibe">∞ Vibe Coding</button>
+        </div>
+        <div class="skill-panels">
+            <!-- Web Dev panel – learning stitch on React and Django -->
+            <div class="skill-panel active" id="panel-web">
+                <div class="skill-panel-grid">
+                    <div class="skill-patch" style="--skill-pct:90%"><span class="skill-icon">🌐</span><div class="skill-name">HTML / CSS</div><div class="skill-bar"><div class="skill-fill"></div></div></div>
+                    <div class="skill-patch" style="--skill-pct:82%"><span class="skill-icon">⚡</span><div class="skill-name">JavaScript</div><div class="skill-bar"><div class="skill-fill"></div></div></div>
+                    <div class="skill-patch stitching" style="--skill-pct:72%">
+                        <span class="skill-icon">⚛️</span><div class="skill-name">React</div>
+                        <div class="skill-bar"><div class="skill-fill"></div></div>
+                        <div class="learning-tag">Stitching</div>
+                    </div>
+                    <div class="skill-patch stitching" style="--skill-pct:78%">
+                        <span class="skill-icon">🐍</span><div class="skill-name">Django</div>
+                        <div class="skill-bar"><div class="skill-fill"></div></div>
+                        <div class="learning-tag">Stitching</div>
+                    </div>
+                    <div class="skill-patch" style="--skill-pct:88%"><span class="skill-icon">🗄️</span><div class="skill-name">SQL</div><div class="skill-bar"><div class="skill-fill"></div></div></div>
+                    <div class="skill-patch" style="--skill-pct:85%"><span class="skill-icon">🌿</span><div class="skill-name">Git / GitHub</div><div class="skill-bar"><div class="skill-fill"></div></div></div>
+                </div>
+            </div>
+            <!-- Data Science panel – learning stitch on Matplotlib and Seaborn -->
+            <div class="skill-panel" id="panel-ds">
+                <div class="skill-panel-grid">
+                    <div class="skill-patch" style="--skill-pct:95%"><span class="skill-icon">🐍</span><div class="skill-name">Python</div><div class="skill-bar"><div class="skill-fill"></div></div></div>
+                    <div class="skill-patch" style="--skill-pct:90%"><span class="skill-icon">🐼</span><div class="skill-name">Pandas</div><div class="skill-bar"><div class="skill-fill"></div></div></div>
+                    <div class="skill-patch" style="--skill-pct:88%"><span class="skill-icon">🔢</span><div class="skill-name">NumPy</div><div class="skill-bar"><div class="skill-fill"></div></div></div>
+                    <div class="skill-patch stitching" style="--skill-pct:85%">
+                        <span class="skill-icon">📊</span><div class="skill-name">Matplotlib</div>
+                        <div class="skill-bar"><div class="skill-fill"></div></div>
+                        <div class="learning-tag">Stitching</div>
+                    </div>
+                    <div class="skill-patch stitching" style="--skill-pct:82%">
+                        <span class="skill-icon">🎨</span><div class="skill-name">Seaborn</div>
+                        <div class="skill-bar"><div class="skill-fill"></div></div>
+                        <div class="learning-tag">Stitching</div>
+                    </div>
+                    <div class="skill-patch" style="--skill-pct:80%"><span class="skill-icon">🔍</span><div class="skill-name">EDA</div><div class="skill-bar"><div class="skill-fill"></div></div></div>
+                </div>
+            </div>
+            <!-- Machine Learning panel – learning stitch on Scikit-learn and ML Algorithms -->
+            <div class="skill-panel" id="panel-ml">
+                <div class="skill-panel-grid">
+                    <div class="skill-patch stitching" style="--skill-pct:85%">
+                        <span class="skill-icon">🧠</span><div class="skill-name">Scikit-learn</div>
+                        <div class="skill-bar"><div class="skill-fill"></div></div>
+                        <div class="learning-tag">Stitching</div>
+                    </div>
+                    <div class="skill-patch stitching" style="--skill-pct:80%">
+                        <span class="skill-icon">🌲</span><div class="skill-name">ML Algorithms</div>
+                        <div class="skill-bar"><div class="skill-fill"></div></div>
+                        <div class="learning-tag">Stitching</div>
+                    </div>
+                    <div class="skill-patch" style="--skill-pct:75%"><span class="skill-icon">📐</span><div class="skill-name">System Design</div><div class="skill-bar"><div class="skill-fill"></div></div></div>
+                    <div class="skill-patch" style="--skill-pct:78%"><span class="skill-icon">🏗️</span><div class="skill-name">DSA / OOP</div><div class="skill-bar"><div class="skill-fill"></div></div></div>
+                    <div class="skill-patch" style="--skill-pct:70%"><span class="skill-icon">💠</span><div class="skill-name">C++ / C</div><div class="skill-bar"><div class="skill-fill"></div></div></div>
+                    <div class="skill-patch" style="--skill-pct:82%"><span class="skill-icon">📓</span><div class="skill-name">Jupyter</div><div class="skill-bar"><div class="skill-fill"></div></div></div>
+                </div>
+            </div>
+            <!-- AI & GenAI panel (already fully stitched) -->
+            <div class="skill-panel" id="panel-ai">
+                <div style="text-align:center;margin-bottom:24px;font-family:'Cinzel',serif;font-size:0.8rem;letter-spacing:0.2em;color:var(--bronze);opacity:0.8;">✦ Currently Stitching New Patterns ✦</div>
+                <div class="skill-panel-grid">
+                    <div class="skill-patch stitching" style="--skill-pct:80%"><span class="skill-icon">🤖</span><div class="skill-name">GenAI</div><div class="skill-bar"><div class="skill-fill"></div></div></div>
+                    <div class="skill-patch stitching" style="--skill-pct:78%"><span class="skill-icon">💬</span><div class="skill-name">LLMs</div><div class="skill-bar"><div class="skill-fill"></div></div></div>
+                    <div class="skill-patch stitching" style="--skill-pct:72%"><span class="skill-icon">🔗</span><div class="skill-name">LangChain</div><div class="skill-bar"><div class="skill-fill"></div></div></div>
+                    <div class="skill-patch stitching" style="--skill-pct:85%"><span class="skill-icon">🌐</span><div class="skill-name">OpenAI API</div><div class="skill-bar"><div class="skill-fill"></div></div></div>
+                    <div class="skill-patch stitching" style="--skill-pct:90%"><span class="skill-icon">✍️</span><div class="skill-name">Prompt Eng.</div><div class="skill-bar"><div class="skill-fill"></div></div></div>
+                    <div class="skill-patch stitching" style="--skill-pct:75%"><span class="skill-icon">🔭</span><div class="skill-name">AI Research</div><div class="skill-bar"><div class="skill-fill"></div></div></div>
+                </div>
+            </div>
+            <!-- Vibe Coding panel -->
+            <div class="skill-panel" id="panel-vibe">
+                <div class="skill-panel-grid">
+                    <div class="skill-vibe" style="grid-column: span 2"><div class="skill-vibe-icon">🧥</div><div class="skill-vibe-text"><h4>Vibe Coding</h4><p>Building ideas fast. Experimenting fearlessly. Creating with AI as a co-pilot.</p></div></div>
+                    <div class="skill-patch" style="--skill-pct:88%"><span class="skill-icon">⚡</span><div class="skill-name">Rapid Prototyping</div><div class="skill-bar"><div class="skill-fill"></div></div></div>
+                    <div class="skill-patch" style="--skill-pct:85%"><span class="skill-icon">🎲</span><div class="skill-name">Experimentation</div><div class="skill-bar"><div class="skill-fill"></div></div></div>
+                    <div class="skill-patch" style="--skill-pct:90%"><span class="skill-icon">🎯</span><div class="skill-name">Shipping Fast</div><div class="skill-bar"><div class="skill-fill"></div></div></div>
+                    <div class="skill-patch" style="--skill-pct:92%"><span class="skill-icon">🤝</span><div class="skill-name">AI Collaboration</div><div class="skill-bar"><div class="skill-fill"></div></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<span class="thread-divider"></span>
+
+<section id="projects">
+    <div class="section-eyebrow reveal">The Showroom</div><h2 class="section-title reveal">Garments of Code</h2>
+    <div class="projects-grid">
+        <div class="project-garment"><div class="garment-hanger"><div class="hanger-hook"></div><div class="hanger-bar"></div><div class="hanger-hook"></div></div><span class="garment-icon">🧥</span><div class="garment-body"><div class="project-type">Machine Learning</div><div class="project-name">Customer Churn Prediction</div><div class="project-desc">Random Forest on 10k telecom dataset, 86% accuracy.</div><div class="project-stat">86% Accuracy · 0.81 F1</div><div class="project-stack"><span class="stack-tag">Python</span><span class="stack-tag">Scikit-learn</span></div><div class="project-links"><a href="https://github.com/AdityaAg7" class="project-link primary" target="_blank">GitHub →</a></div></div></div>
+        <div class="project-garment"><div class="garment-hanger"><div class="hanger-hook"></div><div class="hanger-bar"></div><div class="hanger-hook"></div></div><span class="garment-icon">🕵️</span><div class="garment-body"><div class="project-type">Anomaly Detection</div><div class="project-name">Human Anomaly Detection</div><div class="project-desc">Isolation Forest, 92% precision.</div><div class="project-stat">92% Precision</div><div class="project-stack"><span class="stack-tag">Python</span><span class="stack-tag">Scikit-learn</span></div><div class="project-links"><a href="https://github.com/AdityaAg7" target="_blank" class="project-link primary">GitHub →</a></div></div></div>
+        <div class="project-garment"><div class="garment-hanger"><div class="hanger-hook"></div><div class="hanger-bar"></div><div class="hanger-hook"></div></div><span class="garment-icon">🔗</span><div class="garment-body"><div class="project-type">System Design</div><div class="project-name">URL Shortener</div><div class="project-desc">Scalable architecture for 10M+ writes.</div><div class="project-stat">&lt;10ms Latency</div><div class="project-stack"><span class="stack-tag">Redis</span><span class="stack-tag">Base62</span></div><div class="project-links"><a href="https://github.com/AdityaAg7" class="project-link primary" target="_blank">GitHub →</a></div></div></div>
+        <div class="project-garment"><div class="garment-hanger"><div class="hanger-hook"></div><div class="hanger-bar"></div><div class="hanger-hook"></div></div><span class="garment-icon">➗</span><div class="garment-body"><div class="project-type">C++ / OOP</div><div class="project-name">Fraction Library</div><div class="project-desc">Exact arithmetic with overloaded operators.</div><div class="project-stat">60+ Unit Tests</div><div class="project-stack"><span class="stack-tag">C++</span></div><div class="project-links"><a href="https://github.com/AdityaAg7" class="project-link primary" target="_blank">GitHub →</a></div></div></div>
+        <div class="project-garment"><div class="garment-hanger"><div class="hanger-hook"></div><div class="hanger-bar"></div><div class="hanger-hook"></div></div><span class="garment-icon">🏗️</span><div class="garment-body"><div class="project-type">Startup</div><div class="project-name">PANKH Platform</div><div class="project-desc">Inventory automation, 20+ hrs/month saved.</div><div class="project-stat">20+ hrs/month saved</div><div class="project-stack"><span class="stack-tag">Python</span><span class="stack-tag">SQLite</span></div><div class="project-links"><a href="https://github.com/AdityaAg7" class="project-link primary" target="_blank">GitHub →</a></div></div></div>
+        <div class="project-garment" style="border-style:dashed;"><div class="garment-hanger"><div class="hanger-hook"></div><div class="hanger-bar"></div><div class="hanger-hook"></div></div><span class="garment-icon">🪡</span><div class="garment-body"><div class="project-type">Coming Soon</div><div class="project-name">Next Bespoke Garment</div><div class="project-desc">Every thread purposeful.</div></div></div>
+    </div>
+</section>
+<span class="thread-divider"></span>
+
+<section id="contact">
+    <div class="section-eyebrow reveal">The Fitting Room</div><h2 class="section-title reveal">Let's Stitch Something Together</h2>
+    <div class="contact-layout">
+        <div class="reveal">
+            <h3 class="contact-info-title">The Tailor's Card</h3>
+            <div class="contact-line"><span class="contact-icon">📞</span><div><div class="contact-label">Phone</div><div class="contact-value">+91-7991949389</div></div></div>
+            <div class="contact-line"><span class="contact-icon">✉️</span><div><div class="contact-label">Email</div><div class="contact-value"><a href="mailto:agarwal.aditya.7026@gmail.com">agarwal.aditya.7026@gmail.com</a></div></div></div>
+            <div class="contact-line"><span class="contact-icon">💻</span><div><div class="contact-label">GitHub</div><div class="contact-value"><a href="https://github.com/AdityaAg7" target="_blank">github.com/AdityaAg7</a></div></div></div>
+            <div class="contact-line"><span class="contact-icon">🔗</span><div><div class="contact-label">LinkedIn</div><div class="contact-value"><a href="https://www.linkedin.com/in/aditya-agarwal-b32523302/" target="_blank">linkedin.com/in/aditya-agarwal</a></div></div></div>
+            <div class="contact-line"><span class="contact-icon">📍</span><div><div class="contact-label">Location</div><div class="contact-value">India</div></div></div>
+        </div>
+        <div class="linen-form reveal" id="contactForm">
+            <span class="form-corner-tr"></span>
+            <span class="form-corner-bl"></span>
+            <div class="form-field"><label class="form-label" for="fname">Name</label><input type="text" id="fname" class="form-input" placeholder="Your name, dear tailor…"></div>
+            <div class="form-field"><label class="form-label" for="femail">Email</label><input type="email" id="femail" class="form-input" placeholder="Where shall I send the thread?"></div>
+            <div class="form-field"><label class="form-label" for="fsubject">Subject</label><input type="text" id="fsubject" class="form-input" placeholder="What are we stitching today?"></div>
+            <div class="form-field"><label class="form-label" for="fmsg">Message</label><textarea id="fmsg" class="form-input" placeholder="Lay out your idea on the table…"></textarea></div>
+            <button class="send-btn" id="sendBtn" type="button"><span class="send-needle">🪡</span>Send Message</button>
+            <div class="form-success" id="formSuccess">✦ MESSAGE STITCHED & DELIVERED ✦</div>
+        </div>
+    </div>
+</section>
+
+<footer id="site-footer">
+    <div class="footer-curtains"><div class="footer-curtain footer-curtain-l"></div><div class="footer-curtain footer-curtain-r"></div></div>
+    <div class="footer-logo">Aditya<span>.</span>Agarwal<span>.</span></div>
+    <div class="footer-tagline">Crafted with Code, Data, Creativity & Intelligence.</div>
+    <div class="footer-links">
+        <a href="mailto:agarwal.aditya.7026@gmail.com">Email</a>
+        <a href="https://github.com/AdityaAg7" target="_blank">GitHub</a>
+        <a href="https://www.linkedin.com/in/aditya-agarwal-b32523302/" target="_blank">LinkedIn</a>
+        <a href="#hero">Back to Top</a>
+    </div>
+    <div class="footer-copy">© 2026 Aditya Agarwal · The Digital Wardrobe</div>
+</footer>
+
+<script>
+    /* ── LOADER ── */
+    window.addEventListener('load', () => { setTimeout(() => { document.getElementById('loader').classList.add('hidden'); startHero(); }, 1600); });
+
+    function startHero() {
+        setTimeout(() => { document.querySelector('.curtain-left').classList.add('open'); document.querySelector('.curtain-right').classList.add('open'); }, 300);
+        setTimeout(() => { document.getElementById('heroContent').classList.add('visible'); stitchName(); }, 2200);
+    }
+
+    function stitchName() {
+        const name = 'ADITYA AGARWAL';
+        const el = document.getElementById('heroName');
+        el.innerHTML = '';
+        [...name].forEach((ch, i) => {
+            const span = document.createElement('span');
+            span.textContent = ch === ' ' ? '\u00A0' : ch;
+            span.style.animationDelay = `${i * 0.06 + 0.1}s`;
+            el.appendChild(span);
+        });
+    }
+
+    /* ── SMOOTH CURSOR ── */
+    const needle = document.getElementById('cursor-needle');
+    const cursorCanvas = document.getElementById('cursor-canvas');
+    const ctx2 = cursorCanvas.getContext('2d');
+    cursorCanvas.width = window.innerWidth; cursorCanvas.height = window.innerHeight;
+    let mx = window.innerWidth/2, my = window.innerHeight/2;
+    let needleX = mx, needleY = my;
+    const threadPoints = [];
+    const THREAD_LEN = 32;
+
+    document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+
+    function drawThread() {
+        const SMOOTH = 0.1;
+        needleX += (mx - needleX) * SMOOTH;
+        needleY += (my - needleY) * SMOOTH;
+        needle.style.left = needleX + 'px';
+        needle.style.top = needleY + 'px';
+        threadPoints.unshift({ x: needleX, y: needleY });
+        if (threadPoints.length > THREAD_LEN) threadPoints.pop();
+        ctx2.clearRect(0,0,cursorCanvas.width,cursorCanvas.height);
+        if (threadPoints.length < 2) { requestAnimationFrame(drawThread); return; }
+        ctx2.beginPath();
+        ctx2.moveTo(threadPoints[0].x, threadPoints[0].y);
+        for (let i = 1; i < threadPoints.length; i++) {
+            const alpha = 1 - i/THREAD_LEN;
+            ctx2.strokeStyle = `rgba(200,145,58,${alpha*0.75})`;
+            ctx2.lineWidth = 1.6 * alpha;
+            ctx2.lineTo(threadPoints[i].x, threadPoints[i].y);
+            ctx2.stroke(); ctx2.beginPath(); ctx2.moveTo(threadPoints[i].x, threadPoints[i].y);
+        }
+        requestAnimationFrame(drawThread);
+    }
+    drawThread();
+    window.addEventListener('resize', () => { cursorCanvas.width = window.innerWidth; cursorCanvas.height = window.innerHeight; });
+
+    /* ── PARTICLES ── */
+    const pCanvas = document.getElementById('particles-canvas');
+    const pCtx = pCanvas.getContext('2d');
+    pCanvas.width = window.innerWidth; pCanvas.height = window.innerHeight;
+    const particles = Array.from({length:80}, () => ({ x:Math.random()*pCanvas.width, y:Math.random()*pCanvas.height, r:Math.random()*1.5+0.3, dx:(Math.random()-0.5)*0.3, dy:Math.random()*-0.4-0.1, alpha:Math.random()*0.4+0.1 }));
+    function drawParticles() {
+        pCtx.clearRect(0,0,pCanvas.width,pCanvas.height);
+        particles.forEach(p => { pCtx.beginPath(); pCtx.arc(p.x,p.y,p.r,0,Math.PI*2); pCtx.fillStyle=`rgba(210,184,163,${p.alpha})`; pCtx.fill(); p.x+=p.dx; p.y+=p.dy; if(p.y<-5){p.y=pCanvas.height+5;p.x=Math.random()*pCanvas.width;} if(p.x<0)p.x=pCanvas.width; if(p.x>pCanvas.width)p.x=0; });
+        requestAnimationFrame(drawParticles);
+    }
+    drawParticles();
+    window.addEventListener('resize', () => { pCanvas.width = window.innerWidth; pCanvas.height = window.innerHeight; });
+
+    /* ── NAVBAR ── */
+    window.addEventListener('scroll', () => { document.getElementById('navbar').classList.toggle('scrolled', window.scrollY>60); });
+
+    /* ── SCROLL REVEAL ── */
+    const revealObs = new IntersectionObserver((entries) => { entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('visible'); const fill = e.target.querySelector('.skill-fill'); if(fill) fill.style.width = e.target.style.getPropertyValue('--skill-pct'); revealObs.unobserve(e.target); } }); }, {threshold:0.15});
+    document.querySelectorAll('.reveal, .timeline-item, .edu-card, .cert-frame, .project-garment, .skill-patch').forEach(el => revealObs.observe(el));
+
+    /* ── SKILL TABS ── */
+    document.querySelectorAll('.skill-tab').forEach(tab => { tab.addEventListener('click', () => {
+        document.querySelectorAll('.skill-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.skill-panel').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        const panel = document.getElementById('panel-' + tab.dataset.panel);
+        panel.classList.add('active');
+        setTimeout(() => { panel.querySelectorAll('.skill-patch').forEach(patch => { patch.classList.add('visible'); const fill = patch.querySelector('.skill-fill'); if(fill) fill.style.width = patch.style.getPropertyValue('--skill-pct'); }); }, 50);
+    }); });
+
+/* ── CONTACT ── */
+
+document.getElementById('sendBtn').addEventListener('click', () => {
+    const btn = document.getElementById('sendBtn');
+    const name    = document.getElementById('fname').value.trim();
+    const email   = document.getElementById('femail').value.trim();
+    const subject = document.getElementById('fsubject').value.trim();
+    const message = document.getElementById('fmsg').value.trim();
+
+    if (!name || !email) {
+        const fields = [
+            { el: document.getElementById('fname'),  val: name  },
+            { el: document.getElementById('femail'), val: email }
+        ];
+        let first = null;
+        fields.forEach(f => {
+            if (!f.val) {
+                f.el.setCustomValidity("This field can't be empty");
+                f.el.style.borderBottomColor = '#c0392b';
+                f.el.addEventListener('input', () => {
+                    f.el.setCustomValidity('');
+                    f.el.style.borderBottomColor = '';
+                }, { once: true });
+                if (!first) first = f.el;
+            }
+        });
+        if (first) first.reportValidity();
+        return;
+    }
+    document.getElementById('fname').setCustomValidity('');
+    document.getElementById('femail').setCustomValidity('');
+
+    /* ── .com check ── */
+    const emailEl = document.getElementById('femail');
+    if (!email.toLowerCase().endsWith('.com')) {
+        emailEl.setCustomValidity('Please use an email address ending in .com');
+        emailEl.reportValidity();
+        emailEl.style.borderBottomColor = '#c0392b';
+        emailEl.addEventListener('input', () => {
+            emailEl.setCustomValidity('');
+            emailEl.style.borderBottomColor = '';
+        }, { once: true });
+        return;
+    }
+    emailEl.setCustomValidity('');
+
+    /* ── Sending state ── */
+    btn.disabled = true;
+    btn.classList.add('sending');
+    btn.innerHTML = `<span class="send-needle" style="animation:spin 1s linear infinite;display:inline-block">🪡</span>&nbsp;STITCHING…`;
+
+    emailjs.send(
+        "service_l5epg3i",       // ← Replace with your EmailJS Service ID
+        "template_4ubv2pj",      // ← Replace with your EmailJS Template ID
+        { from_name: name, from_email: email, subject: subject, message: message }
+    )
+    .then(() => {
+        /* ── Success ── */
+        btn.style.display = 'none';
+        const successEl = document.getElementById('formSuccess');
+        successEl.style.display = 'block';
+        successEl.innerHTML = `
+            <div style="font-size:1.4rem;margin-bottom:10px;opacity:0.85;">✦</div>
+            MESSAGE STITCHED &amp; DELIVERED
+            <div style="font-family:'Crimson Pro',serif;font-style:italic;font-size:0.75rem;letter-spacing:0.15em;color:var(--warm-brown);margin-top:8px;font-weight:300;">
+                I'll be in touch soon, dear tailor.
+            </div>`;
+
+        /* Bronze thread burst */
+        const colors = ['#B87333','#DFA040','#C8913A','#E8DDD3'];
+        for (let i = 0; i < 22; i++) {
+            const p = document.createElement('div');
+            const size = 3 + Math.random() * 4;
+            p.style.cssText = `
+                position:fixed;
+                left:${window.innerWidth/2}px;
+                top:${window.innerHeight/2}px;
+                width:${size}px; height:${size}px;
+                border-radius:50%;
+                background:${colors[i % colors.length]};
+                pointer-events:none; z-index:9999;
+                transition:all ${0.9 + Math.random() * 0.5}s cubic-bezier(.25,1,.5,1);
+                opacity:1;`;
+            document.body.appendChild(p);
+            const angle = (i / 22) * Math.PI * 2;
+            const dist  = 70 + Math.random() * 110;
+            setTimeout(() => {
+                p.style.transform = `translate(${Math.cos(angle)*dist}px,${Math.sin(angle)*dist}px) scale(0.2)`;
+                p.style.opacity = '0';
+            }, 20);
+            setTimeout(() => p.remove(), 1600);
+        }
+
+        /* Clear form fields */
+        ['fname','femail','fsubject','fmsg'].forEach(id => document.getElementById(id).value = '');
+    })
+    .catch(err => {
+        console.error('EmailJS error:', err);
+        btn.disabled = false;
+        btn.classList.remove('sending');
+        btn.innerHTML = '<span class="send-needle">🪡</span>Send Message';
+        const successEl = document.getElementById('formSuccess');
+        successEl.style.display = 'block';
+        successEl.style.borderColor = 'rgba(192,57,43,0.4)';
+        successEl.style.color = '#e07060';
+        successEl.innerHTML = '✦ THREAD SNAPPED — Please try again.';
+    });
+});
+    /* ── FOOTER ── */
+    new IntersectionObserver(entries => { if(entries[0].isIntersecting){ setTimeout(()=>{ document.querySelector('.footer-curtain-l').classList.add('closing'); document.querySelector('.footer-curtain-r').classList.add('closing'); },800); } }, {threshold:0.5}).observe(document.getElementById('site-footer'));
+
+    /* ── HERO TILT ── */
+    document.addEventListener('mousemove', e => { const rx=(e.clientY/window.innerHeight-0.5)*5; const ry=(e.clientX/window.innerWidth-0.5)*-5; document.querySelector('.hero-content')?.style && (document.querySelector('.hero-content').style.transform=`rotateX(${rx}deg) rotateY(${ry}deg)`); });
+</script>
+
+<!-- EmailJS SDK — https://www.emailjs.com -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script>
+emailjs.init({
+    publicKey: "68sbhNNbJfAq37Mp8",  // ← Replace with your EmailJS Public Key
+});
+</script>
+</body>
+</html>
